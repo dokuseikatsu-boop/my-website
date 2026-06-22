@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#07070f"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="The System"/>
+<title>The System</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:#07070f;font-family:'Inter',sans-serif;color:#f0f0ff;}
+input,select,button,textarea{font-family:'Inter',sans-serif;}
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:#2a2a50;border-radius:2px;}
+select option{background:#0e0e1c;}
+@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+@keyframes modalIn{from{opacity:0;transform:scale(0.93);}to{opacity:1;transform:scale(1);}}
+@keyframes tg{0%{text-shadow:none;}40%{text-shadow:0 0 12px var(--gc),0 0 28px var(--gc);}100%{text-shadow:none;}}
+.tg{animation:tg 0.7s ease forwards;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useMemo} = React;
+
+// ─── QUOTES ───────────────────────────────────────────────────────────
+const Q = {
+  grind:[
+    "The pain you feel today is the strength you feel tomorrow.",
+    "Every expert was once a beginner. Keep going.",
+    "Discipline is choosing what you want most over what you want now.",
+    "Arise. The weak version of you has no place here.",
+    "Small steps every day. That's how mountains are climbed.",
+    "You are building the person you want to become.",
+    "Progress, not perfection.",
+    "One more rep. One more page. One more line of code.",
+  ],
+  done:[
+    "Another victory. The System acknowledges your effort.",
+    "Well done, Hunter. You proved yourself worthy.",
+    "Every completed quest is a promise kept — to yourself.",
+    "The weak would have quit. You didn't.",
+    "Victory recorded. The System never forgets.",
+  ],
+  fail:[
+    "Failure is data. Learn, adapt, return stronger.",
+    "The penalty is paid. Now rebuild.",
+    "This is not the end. It is the forge.",
+    "Every setback is a setup for a comeback.",
+  ],
+  levelup:[
+    "You have transcended. A new version of you awakens.",
+    "Level by level, you are becoming unstoppable.",
+    "Power recognised. Power rewarded.",
+    "You earned this. Every drop of sweat counts.",
+  ],
+  daily:[
+    "Consistency is the highest form of discipline.",
+    "Same time. Every day. That's what separates champions.",
+    "Rituals build empires.",
+  ],
+  reward:[
+    "You earned this. Enjoy it fully — you deserve it.",
+    "Rest is part of the grind. Celebrate without guilt.",
+    "Take it. You fought for this moment.",
+  ],
+};
+const rq = arr => arr[Math.floor(Math.random()*arr.length)];
+
+// ─── CONSTANTS ────────────────────────────────────────────────────────
+const TREES = {
+  Study:  {icon:"◈",label:"Study",   color:"#8b7ffa",subs:["Pathology","PSM / Community Med","Anatomy","Physiology","Pharmacology","Biochemistry","Forensic","Medicine","Surgery"]},
+  Fitness:{icon:"◉",label:"Fitness", color:"#fa6f6f",subs:["Push-ups","Running","Pull-ups","Core / Abs","Stretching","Cycling","Swimming"]},
+  Habits: {icon:"◌",label:"Discipline",color:"#5ec9f5",subs:["Sleep 8h","Drink 2L Water","No Social Media","Morning Routine","Journaling","Meditation"]},
+  Coding: {icon:"◆",label:"Coding",  color:"#52e89a",subs:["Python","Bash / Linux","Web Dev","DSA","Projects","Git"]},
+  Custom: {icon:"◇",label:"Custom",  color:"#f0c060",subs:[]},
+};
+const RANKS = [
+  {r:"E",min:0, c:"#888",   label:"Initiate"},
+  {r:"D",min:5, c:"#52e89a",label:"Apprentice"},
+  {r:"C",min:15,c:"#5ec9f5",label:"Warrior"},
+  {r:"B",min:30,c:"#8b7ffa",label:"Elite"},
+  {r:"A",min:50,c:"#f0c060",label:"Champion"},
+  {r:"S",min:75,c:"#fa6f6f",label:"Sovereign"},
+];
+const DC = {E:"#888",D:"#52e89a",C:"#5ec9f5",B:"#8b7ffa",A:"#f0c060",S:"#fa6f6f"};
+const XPL = 100;
+const PALETTE = ["#8b7ffa","#fa6f6f","#5ec9f5","#52e89a","#f0c060","#f472b6","#fb923c","#a3e635"];
+
+function getRank(lv){for(let i=RANKS.length-1;i>=0;i--)if(lv>=RANKS[i].min)return RANKS[i];return RANKS[0];}
+function today(){return new Date().toISOString().slice(0,10);}
+
+const QTPL = [
+  {title:"Study Pathology — 1 hour",     cat:"Study",  sub:"Pathology",         xp:50,d:"D"},
+  {title:"Study PSM — 1 chapter",        cat:"Study",  sub:"PSM / Community Med",xp:50,d:"D"},
+  {title:"Study Physiology — 1 hour",    cat:"Study",  sub:"Physiology",         xp:50,d:"D"},
+  {title:"Revise 20 MCQs",               cat:"Study",  sub:"Medicine",           xp:35,d:"E"},
+  {title:"50 Push-ups",                  cat:"Fitness",sub:"Push-ups",           xp:30,d:"E"},
+  {title:"Run 3 km",                     cat:"Fitness",sub:"Running",            xp:60,d:"D"},
+  {title:"Sleep 8 hours",                cat:"Habits", sub:"Sleep 8h",           xp:25,d:"E"},
+  {title:"Drink 2L of water",            cat:"Habits", sub:"Drink 2L Water",     xp:20,d:"E"},
+  {title:"Complete morning routine",     cat:"Habits", sub:"Morning Routine",    xp:20,d:"E"},
+  {title:"Code for 1 hour",             cat:"Coding", sub:"Python",             xp:50,d:"D"},
+  {title:"Complete a Bandit level",      cat:"Coding", sub:"Bash / Linux",       xp:40,d:"D"},
+];
+
+// ─── STORAGE ──────────────────────────────────────────────────────────
+const SK = "sl-v4";
+function loadS(){try{const r=localStorage.getItem(SK);return r?JSON.parse(r):null;}catch{return null;}}
+function saveS(s){try{localStorage.setItem(SK,JSON.stringify(s));}catch{}}
+
+function initState(){
+  const skills={};
+  Object.entries(TREES).forEach(([k,v])=>{
+    skills[k]={xp:0,level:1,subs:{}};
+    v.subs.forEach(s=>{skills[k].subs[s]={xp:0,level:1};});
+  });
+  const rewards={};
+  const rd={
+    5: ["Dinner at your favourite restaurant","Buy any book you want","One full movie night — no guilt"],
+    10:["One completely free weekend","A meal at the best place in the city","Buy something you've been wanting"],
+    15:["Cinema trip with full snacks","Something meaningful for yourself","A guilt-free rest day"],
+    20:["Plan a day trip somewhere new","Splurge on yourself — you decide","Gaming marathon, no time limit"],
+    25:["Fancy dinner — your pick","Movie marathon — three films","Buy that thing you kept delaying"],
+    30:["A reward entirely of your choice","A day trip somewhere","A purchase you truly want"],
+    35:["Cinema + a full meal after","A full gaming weekend","Treat yourself — no limits"],
+    40:["Weekend getaway — you pick where","Something that genuinely matters to you","The best meal you can imagine"],
+    45:["A major reward — entirely your call","Celebrate with the people you love","A premium purchase you've earned"],
+    50:["Anything you want. You've reached the top.","Plan a real trip","The biggest celebration possible"],
+  };
+  Object.entries(rd).forEach(([lv,items])=>{rewards[parseInt(lv)]={items,claimed:false};});
+  // letters: {fromLevel: {to:5, text:"...", writtenAt:"date", read:false}}
+  // Chain: write at lv1 for lv5, at lv5 for lv10, at lv10 for lv15, etc.
+  const letters = {};
+  return {
+    playerName:"Sung Fardan",
+    totalLevel:1, totalXp:0,
+    skills,
+    quests:[],
+    dailies:[],
+    dailyLog:{},
+    log:[],
+    rewards,
+    customCats:{},
+    letters,
+  };
+}
+
+// ─── XP HELPERS ───────────────────────────────────────────────────────
+function applyXP(n, cat, sub, amt){
+  const sc = n.skills[cat];
+  if(!sc||!sc.subs[sub]) return [];
+  sc.subs[sub].xp += amt;
+  while(sc.subs[sub].xp >= XPL*sc.subs[sub].level){sc.subs[sub].xp -= XPL*sc.subs[sub].level; sc.subs[sub].level++;}
+  sc.xp += amt;
+  while(sc.xp >= XPL*sc.level){sc.xp -= XPL*sc.level; sc.level++;}
+  const newLevels=[];
+  n.totalXp += amt;
+  while(n.totalXp >= XPL*n.totalLevel){n.totalXp -= XPL*n.totalLevel; n.totalLevel++; newLevels.push(n.totalLevel);}
+  return newLevels;
+}
+function deductXP(n, cat, sub, amt){
+  const sc = n.skills[cat];
+  if(!sc||!sc.subs[sub]) return;
+  sc.subs[sub].xp -= amt;
+  while(sc.subs[sub].xp<0&&sc.subs[sub].level>1){sc.subs[sub].level--;sc.subs[sub].xp+=XPL*sc.subs[sub].level;}
+  if(sc.subs[sub].xp<0)sc.subs[sub].xp=0;
+  sc.xp -= amt;
+  while(sc.xp<0&&sc.level>1){sc.level--;sc.xp+=XPL*sc.level;}
+  if(sc.xp<0)sc.xp=0;
+  n.totalXp -= amt;
+  while(n.totalXp<0&&n.totalLevel>1){n.totalLevel--;n.totalXp+=XPL*n.totalLevel;}
+  if(n.totalXp<0)n.totalXp=0;
+}
+
+// ─── MIDNIGHT PENALTIES ───────────────────────────────────────────────
+function midnight(state){
+  const td = today();
+  const n = JSON.parse(JSON.stringify(state));
+  let changed = false;
+  Object.entries(n.dailyLog).forEach(([date,log])=>{
+    if(date>=td) return;
+    n.dailies.forEach(dq=>{
+      if(!log[dq.id]||log[dq.id]==="pending"){
+        log[dq.id]="auto-failed";
+        deductXP(n,dq.cat,dq.sub,dq.xp);
+        n.log=[{t:Date.now(),text:`Auto-fail · ${dq.title} · −${dq.xp} XP`},...n.log].slice(0,100);
+        changed=true;
+      }
+    });
+  });
+  if(!n.dailyLog[td]){n.dailyLog[td]={};changed=true;}
+  n.dailies.forEach(dq=>{if(!n.dailyLog[td][dq.id]){n.dailyLog[td][dq.id]="pending";changed=true;}});
+  return changed?n:state;
+}
+
+// ─── GLOW TITLE ───────────────────────────────────────────────────────
+function GT({text, color, style}){
+  const [k,setK] = useState(0);
+  return (
+    <span
+      key={k}
+      className={k?"tg":""}
+      style={{"--gc": color||"#8b7ffa", ...style}}
+      onPointerDown={()=>setK(p=>p+1)}
+    >{text}</span>
+  );
+}
+
+// ─── SECTION LABEL ────────────────────────────────────────────────────
+function SL({children, style}){
+  return <div style={{fontSize:10,fontWeight:700,color:"#6060a0",letterSpacing:2,marginBottom:12,textTransform:"uppercase",...style}}>{children}</div>;
+}
+
+// ─── APP ──────────────────────────────────────────────────────────────
+function App(){
+  const [S, setS] = useState(()=>midnight(loadS()||initState()));
+  const [tab, setTab] = useState("status");
+  const [toast, setToast] = useState(null);
+  const [editName, setEditName] = useState(false);
+  const [nameVal, setNameVal] = useState("");
+  const [lvPopup, setLvPopup] = useState(null);
+  const toastTimer = useRef(null);
+  const dailyQuote = useMemo(()=>rq(Q.grind),[]);
+
+  useEffect(()=>{saveS(S);},[S]);
+  useEffect(()=>{const iv=setInterval(()=>setS(p=>midnight(p)),60000);return()=>clearInterval(iv);},[]);
+
+  function showToast(msg,type="gain"){
+    clearTimeout(toastTimer.current);
+    setToast({msg,type});
+    toastTimer.current=setTimeout(()=>setToast(null),3200);
+  }
+
+  function checkLvUp(newLevels, n){
+    if(!newLevels||!newLevels.length) return;
+    const lv = newLevels.filter(l=>l%5===0).pop();
+    if(!lv) return;
+    const rw = n.rewards&&n.rewards[lv];
+    if(rw&&!rw.claimed) setTimeout(()=>setLvPopup({level:lv,items:[...rw.items]}),400);
+  }
+
+  // ── quests
+  function addQuest(q){setS(p=>({...p,quests:[...p.quests,{...q,id:Date.now(),done:false,failed:false}]}));}
+  function delQuest(id){setS(p=>({...p,quests:p.quests.filter(q=>q.id!==id)}));}
+  function doneQuest(id){
+    let nl=[];
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      const q=n.quests.find(x=>x.id===id);
+      if(!q||q.done||q.failed)return prev;
+      q.done=true;
+      const sub=q.sub||Object.keys(n.skills[q.cat]?.subs||{})[0]||"";
+      nl=applyXP(n,q.cat,sub,q.xp)||[];
+      n.log=[{t:Date.now(),text:`Quest done · ${q.title} · +${q.xp} XP`},...n.log].slice(0,100);
+      setTimeout(()=>checkLvUp(nl,n),100);
+      return n;
+    });
+    showToast(rq(Q.done),"done");
+  }
+  function failQuest(id){
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      const q=n.quests.find(x=>x.id===id);
+      if(!q||q.done||q.failed)return prev;
+      q.failed=true;
+      const sub=q.sub||Object.keys(n.skills[q.cat]?.subs||{})[0]||"";
+      deductXP(n,q.cat,sub,q.xp);
+      n.log=[{t:Date.now(),text:`Quest failed · ${q.title} · −${q.xp} XP`},...n.log].slice(0,100);
+      return n;
+    });
+    showToast(rq(Q.fail),"fail");
+  }
+
+  // ── dailies
+  function addDaily(dq){
+    const id=Date.now(),td=today();
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      n.dailies=[...n.dailies,{...dq,id}];
+      if(!n.dailyLog[td])n.dailyLog[td]={};
+      n.dailyLog[td][id]="pending";
+      return n;
+    });
+  }
+  function delDaily(id){
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      n.dailies=n.dailies.filter(d=>d.id!==id);
+      Object.values(n.dailyLog).forEach(d=>delete d[id]);
+      return n;
+    });
+  }
+  function doneDaily(dq){
+    const td=today(); let nl=[];
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      if(!n.dailyLog[td])n.dailyLog[td]={};
+      if(n.dailyLog[td][dq.id]==="done")return prev;
+      n.dailyLog[td][dq.id]="done";
+      nl=applyXP(n,dq.cat,dq.sub,dq.xp)||[];
+      n.log=[{t:Date.now(),text:`Daily done · ${dq.title} · +${dq.xp} XP`},...n.log].slice(0,100);
+      setTimeout(()=>checkLvUp(nl,n),100);
+      return n;
+    });
+    showToast(rq(Q.daily),"done");
+  }
+  function failDaily(dq){
+    const td=today();
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      if(!n.dailyLog[td])n.dailyLog[td]={};
+      if(n.dailyLog[td][dq.id]==="done"||n.dailyLog[td][dq.id]==="failed")return prev;
+      n.dailyLog[td][dq.id]="failed";
+      deductXP(n,dq.cat,dq.sub,dq.xp);
+      n.log=[{t:Date.now(),text:`Daily failed · ${dq.title} · −${dq.xp} XP`},...n.log].slice(0,100);
+      return n;
+    });
+    showToast(rq(Q.fail),"fail");
+  }
+
+  // ── skills
+  function addXP(cat,sub,amt){
+    let nl=[];
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      nl=applyXP(n,cat,sub,amt)||[];
+      n.log=[{t:Date.now(),text:`+${amt} XP · ${cat} › ${sub}`},...n.log].slice(0,100);
+      setTimeout(()=>checkLvUp(nl,n),100);
+      return n;
+    });
+    showToast(rq(Q.grind),"gain");
+  }
+  function addSub(cat,sub){
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      if(n.skills[cat]&&!n.skills[cat].subs[sub]){
+        n.skills[cat].subs[sub]={xp:0,level:1};
+      }
+      return n;
+    });
+  }
+  function delSub(cat,sub){
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      if(n.skills[cat]) delete n.skills[cat].subs[sub];
+      return n;
+    });
+  }
+  function addCat(name,color){
+    const icon=["▣","▤","▥","▦","▧","▨"][Math.floor(Math.random()*6)];
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      if(!n.skills[name]){
+        n.skills[name]={xp:0,level:1,subs:{}};
+        n.customCats[name]={color,icon};
+      }
+      return n;
+    });
+  }
+  function delCat(name){
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      delete n.skills[name];
+      delete n.customCats[name];
+      return n;
+    });
+  }
+
+  // ── rewards
+  function claimReward(lv){
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      if(n.rewards[lv])n.rewards[lv].claimed=true;
+      n.log=[{t:Date.now(),text:`Reward claimed · Level ${lv}`},...n.log].slice(0,100);
+      return n;
+    });
+    showToast(rq(Q.reward),"done");
+    setLvPopup(null);
+  }
+  function saveReward(lv,items){
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      if(!n.rewards[lv])n.rewards[lv]={items,claimed:false};
+      else n.rewards[lv].items=items;
+      return n;
+    });
+  }
+
+  // ── letters
+  // Letters are written at level X for level X+5
+  // writeLetter(fromLevel, text) — saves the letter
+  // When user reaches toLevel, the letter unlocks in the reward popup
+  function writeLetter(fromLevel, text){
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      if(!n.letters) n.letters={};
+      const toLevel = fromLevel + 5;
+      n.letters[fromLevel]={
+        from: fromLevel,
+        to: toLevel,
+        text,
+        writtenAt: today(),
+        read: false,
+      };
+      return n;
+    });
+  }
+  function markLetterRead(fromLevel){
+    setS(prev=>{
+      const n=JSON.parse(JSON.stringify(prev));
+      if(n.letters&&n.letters[fromLevel]) n.letters[fromLevel].read=true;
+      return n;
+    });
+  }
+
+  // ── backup
+  function dlBackup(){
+    const b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+    const u=URL.createObjectURL(b);
+    const a=document.createElement("a");
+    a.href=u;a.download=`system-${today()}.json`;a.click();
+    URL.revokeObjectURL(u);
+    showToast("Backup saved. Your progress is safe.","done");
+  }
+  function ulBackup(e){
+    const f=e.target.files[0];if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      try{
+        const d=JSON.parse(ev.target.result);
+        if(d.totalLevel&&d.skills&&d.playerName){setS(midnight(d));showToast("Progress restored. Welcome back.","done");}
+        else showToast("Invalid file.","fail");
+      }catch{showToast("Could not read file.","fail");}
+    };
+    r.readAsText(f);e.target.value="";
+  }
+
+  // ── derived
+  const rank = getRank(S.totalLevel);
+  const xpNeed = XPL*S.totalLevel;
+  const td = today();
+  const tdLog = S.dailyLog[td]||{};
+  const pending = S.dailies.filter(d=>!tdLog[d.id]||tdLog[d.id]==="pending");
+
+  // All categories including custom
+  const allCats = useMemo(()=>{
+    const m={...TREES};
+    Object.entries(S.customCats||{}).forEach(([name,def])=>{
+      m[name]={icon:def.icon,label:name,color:def.color,subs:[],isCustom:true};
+    });
+    return m;
+  },[S.customCats]);
+
+  const unreadLetters=Object.values(S.letters||{}).filter(l=>!l.read&&S.totalLevel>=l.to).length;
+  const TABS=[["status","▣","Status"],["skills","◈","Skills"],["quests","◉","Quests"],["dailies","◌","Dailies"],["rewards","◆","Rewards"],["letters","✉","Letters"],["log","◇","Log"]];
+
+  return (
+    <div style={{background:"#07070f",minHeight:"100vh",maxWidth:480,margin:"0 auto",paddingBottom:90}}>
+
+      {/* TOAST */}
+      {toast&&(
+        <div style={{
+          position:"fixed",top:16,left:"50%",transform:"translateX(-50%)",
+          background:toast.type==="gain"?"#0e0e22":toast.type==="done"?"#0a1a10":"#1a0a0a",
+          border:`1px solid ${toast.type==="gain"?"#8b7ffa44":toast.type==="done"?"#52e89a44":"#fa6f6f44"}`,
+          color:"#c8c8f0",padding:"12px 20px",borderRadius:12,zIndex:999,
+          fontSize:13,maxWidth:320,width:"88%",animation:"fadeUp 0.2s ease",
+          lineHeight:1.6,textAlign:"center",fontStyle:"italic",fontWeight:300,
+          boxShadow:"0 8px 32px #00000099"
+        }}>"{toast.msg}"</div>
+      )}
+
+      {/* HEADER */}
+      <div style={{background:"linear-gradient(180deg,#0e0e1e,#07070f)",padding:"20px 16px 14px",borderBottom:"1px solid #121228"}}>
+        <div style={{fontSize:11,color:"#404068",fontStyle:"italic",fontWeight:300,marginBottom:14,textAlign:"center",lineHeight:1.6}}>
+          "{dailyQuote}"
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <div style={{
+            width:52,height:52,borderRadius:"50%",flexShrink:0,
+            background:`radial-gradient(circle at 35% 35%,${rank.c}33,#07070f)`,
+            border:`1.5px solid ${rank.c}66`,
+            display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+            boxShadow:`0 0 18px ${rank.c}22`
+          }}>
+            <div style={{fontSize:17,fontWeight:900,color:rank.c,lineHeight:1}}>{rank.r}</div>
+            <div style={{fontSize:7,color:rank.c+"77",letterSpacing:1,marginTop:1}}>{rank.label.toUpperCase()}</div>
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            {editName?(
+              <div style={{display:"flex",gap:6}}>
+                <input value={nameVal} onChange={e=>setNameVal(e.target.value)}
+                  onKeyDown={e=>{if(e.key==="Enter"&&nameVal.trim()){setS(p=>({...p,playerName:nameVal.trim()}));setEditName(false);}}}
+                  style={{flex:1,background:"#0e0e1e",border:"1px solid #8b7ffa55",color:"#f0f0ff",borderRadius:8,padding:"6px 10px",fontSize:15,fontWeight:600}}
+                  autoFocus/>
+                <button onClick={()=>{if(nameVal.trim()){setS(p=>({...p,playerName:nameVal.trim()}));setEditName(false);}}}
+                  style={{background:"#8b7ffa22",border:"1px solid #8b7ffa55",color:"#8b7ffa",borderRadius:8,padding:"6px 12px",cursor:"pointer",fontWeight:700}}>✓</button>
+              </div>
+            ):(
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <GT text={S.playerName} color={rank.c} style={{fontWeight:700,fontSize:18,color:"#f0f0ff",display:"inline-block"}}/>
+                <button onClick={()=>{setEditName(true);setNameVal(S.playerName);}}
+                  style={{background:"none",border:"none",color:"#2a2a4a",cursor:"pointer",fontSize:14}}>⌇</button>
+              </div>
+            )}
+            <div style={{fontSize:11,color:"#50508a",marginTop:3,letterSpacing:0.4}}>Hunter · Level {S.totalLevel} · {rank.label}</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:4,flexShrink:0}}>
+            <button onClick={dlBackup} style={{background:"#0e0e1e",border:"1px solid #1e1e36",color:"#50508a",borderRadius:7,padding:"4px 9px",fontSize:10,cursor:"pointer"}}>↓ save</button>
+            <label style={{background:"#0e0e1e",border:"1px solid #1e1e36",color:"#50508a",borderRadius:7,padding:"4px 9px",fontSize:10,cursor:"pointer",textAlign:"center"}}>
+              ↑ load<input type="file" accept=".json" onChange={ulBackup} style={{display:"none"}}/>
+            </label>
+          </div>
+        </div>
+        {/* XP bar */}
+        <div style={{marginTop:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#30305a",marginBottom:4,letterSpacing:1}}>
+            <span>EXPERIENCE</span><span>{S.totalXp} / {xpNeed}</span>
+          </div>
+          <div style={{background:"#0e0e1e",borderRadius:6,height:5,overflow:"hidden"}}>
+            <div style={{width:`${(S.totalXp/xpNeed)*100}%`,height:"100%",background:`linear-gradient(90deg,${rank.c}88,${rank.c})`,transition:"width 0.5s",borderRadius:6}}/>
+          </div>
+        </div>
+        {/* Daily bar */}
+        {S.dailies.length>0&&(
+          <div style={{marginTop:8}}>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"#30305a",marginBottom:4,letterSpacing:1}}>
+              <span>DAILY DISCIPLINE</span>
+              <span style={{color:pending.length===0?"#52e89a":"#30305a"}}>{S.dailies.length-pending.length} / {S.dailies.length}</span>
+            </div>
+            <div style={{background:"#0e0e1e",borderRadius:6,height:3,overflow:"hidden"}}>
+              <div style={{width:`${((S.dailies.length-pending.length)/S.dailies.length)*100}%`,height:"100%",background:"#52e89a77",transition:"width 0.5s",borderRadius:6}}/>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* TABS */}
+      <div style={{display:"flex",background:"#09091a",borderBottom:"1px solid #111128",position:"sticky",top:0,zIndex:10}}>
+        {TABS.map(([id,icon,label])=>(
+          <button key={id} onClick={()=>setTab(id)} style={{
+            flex:1,padding:"9px 0 7px",background:"none",border:"none",
+            color:tab===id?rank.c:"#404068",cursor:"pointer",
+            borderBottom:tab===id?`1.5px solid ${rank.c}`:"1.5px solid transparent",
+            fontSize:9,fontWeight:tab===id?700:400,letterSpacing:0.6,transition:"color 0.2s",position:"relative"
+          }}>
+            <div style={{fontSize:13,marginBottom:2}}>{icon}</div>
+            {label.toUpperCase()}
+            {id==="dailies"&&pending.length>0&&(
+              <span style={{position:"absolute",top:5,right:"calc(50% - 10px)",background:"#fa6f6f",borderRadius:"50%",width:13,height:13,fontSize:8,display:"inline-flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:900}}>{pending.length}</span>
+            )}
+            {id==="letters"&&unreadLetters>0&&(
+              <span style={{position:"absolute",top:5,right:"calc(50% - 10px)",background:"#8b7ffa",borderRadius:"50%",width:13,height:13,fontSize:8,display:"inline-flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:900}}>{unreadLetters}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* CONTENT */}
+      <div style={{padding:"16px 14px"}}>
+        {tab==="status"  &&<Status  S={S} allCats={allCats} rank={rank}/>}
+        {tab==="skills"  &&<Skills  S={S} allCats={allCats} addXP={addXP} addSub={addSub} delSub={delSub} addCat={addCat} delCat={delCat}/>}
+        {tab==="quests"  &&<Quests  S={S} allCats={allCats} addQuest={addQuest} doneQuest={doneQuest} failQuest={failQuest} delQuest={delQuest}/>}
+        {tab==="dailies" &&<Dailies S={S} allCats={allCats} addDaily={addDaily} doneDaily={doneDaily} failDaily={failDaily} delDaily={delDaily}/>}
+        {tab==="rewards" &&<Rewards S={S} claimReward={claimReward} saveReward={saveReward} setLvPopup={setLvPopup} writeLetter={writeLetter} markLetterRead={markLetterRead}/>}
+        {tab==="log"     &&<Log     S={S}/>}
+        {tab==="letters" &&<Letters S={S} writeLetter={writeLetter} markLetterRead={markLetterRead}/>}
+      </div>
+
+      {lvPopup&&<LvModal popup={lvPopup} S={S} onClaim={claimReward} onDismiss={()=>setLvPopup(null)} saveReward={saveReward} markLetterRead={markLetterRead}/>}
+    </div>
+  );
+}
+
+// ─── STATUS ───────────────────────────────────────────────────────────
+function Status({S, allCats, rank}){
+  const td=today(), tdLog=S.dailyLog[td]||{};
+  return(
+    <div>
+      {S.dailies.length>0&&(
+        <>
+          <SL>Today's Discipline</SL>
+          {S.dailies.map(dq=>{
+            const st=tdLog[dq.id]||"pending";
+            const col=st==="done"?"#52e89a":st.includes("failed")?"#fa6f6f":"#50508a";
+            return(
+              <div key={dq.id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",marginBottom:5,background:"#0d0d1e",borderRadius:9,border:`1px solid ${col}18`}}>
+                <div style={{width:20,height:20,borderRadius:"50%",border:`1px solid ${col}44`,display:"flex",alignItems:"center",justifyContent:"center",color:col,fontSize:11,fontWeight:700,flexShrink:0}}>
+                  {st==="done"?"✓":st.includes("failed")?"✗":"·"}
+                </div>
+                <span style={{flex:1,fontSize:13,color:st==="done"?"#c0c0e8":"#8888b0"}}>{dq.title}</span>
+                <span style={{fontSize:10,color:col}}>{st==="done"?`+${dq.xp}`:st.includes("failed")?`−${dq.xp}`:`±${dq.xp}`}</span>
+              </div>
+            );
+          })}
+          <div style={{height:18}}/>
+        </>
+      )}
+      <SL>Skill Overview</SL>
+      {Object.entries(allCats).map(([cat,def])=>{
+        const sk=S.skills[cat];
+        if(!sk)return null;
+        const rk=getRank(sk.level), need=XPL*sk.level;
+        const subs=Object.keys(sk.subs);
+        const avg=subs.length?(subs.reduce((a,s)=>a+sk.subs[s].level,0)/subs.length).toFixed(1):"—";
+        return(
+          <div key={cat} style={{background:"#0d0d1e",border:`1px solid ${def.color}18`,borderRadius:12,padding:"13px 15px",marginBottom:9}}>
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:9}}>
+              <div style={{width:34,height:34,borderRadius:9,background:`${def.color}12`,border:`1px solid ${def.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,color:def.color,flexShrink:0}}>{def.icon}</div>
+              <div style={{flex:1}}>
+                <GT text={def.label||cat} color={def.color} style={{fontWeight:600,fontSize:14,color:"#e8e8ff",display:"block"}}/>
+                <div style={{fontSize:10,color:"#808098",marginTop:2,letterSpacing:0.4}}>Lv {sk.level} · Rank {rk.r} · avg lv {avg}</div>
+              </div>
+              <div style={{fontSize:10,color:def.color}}>{sk.xp}/{need}</div>
+            </div>
+            <div style={{background:"#07070f",borderRadius:4,height:3,overflow:"hidden"}}>
+              <div style={{width:`${(sk.xp/need)*100}%`,height:"100%",background:def.color+"88",transition:"width 0.4s",borderRadius:4}}/>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── SKILLS ───────────────────────────────────────────────────────────
+function Skills({S, allCats, addXP, addSub, delSub, addCat, delCat}){
+  const [open, setOpen] = useState(null);
+  const [amts, setAmts] = useState({});
+  const [subInputs, setSubInputs] = useState({});
+  const [confirmDel, setConfirmDel] = useState(null);
+  const [confirmDelCat, setConfirmDelCat] = useState(null);
+  const [showNewCat, setShowNewCat] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatColor, setNewCatColor] = useState("#8b7ffa");
+
+  const ga=(cat,sub)=>amts[`${cat}:${sub}`]||25;
+  const sa=(cat,sub,v)=>setAmts(p=>({...p,[`${cat}:${sub}`]:v}));
+  const getSI=(cat)=>subInputs[cat]||"";
+  const setSI=(cat,v)=>setSubInputs(p=>({...p,[cat]:v}));
+
+  function doAddSub(cat){
+    const v=getSI(cat).trim();
+    if(!v)return;
+    addSub(cat,v);
+    setSI(cat,"");
+  }
+  function doAddCat(){
+    const name=newCatName.trim();
+    if(!name)return;
+    addCat(name,newCatColor);
+    setNewCatName("");
+    setShowNewCat(false);
+    setOpen(name);
+  }
+
+  return(
+    <div>
+      <SL>Skill Trees</SL>
+      <div style={{fontSize:12,color:"#9090b8",marginBottom:14,fontStyle:"italic",fontWeight:300}}>"{rq(Q.grind)}"</div>
+
+      {/* New category button / form */}
+      {showNewCat?(
+        <div style={{background:"#0d0d1e",border:"1px solid #c084fc44",borderRadius:12,padding:14,marginBottom:12}}>
+          <div style={{fontSize:11,color:"#c084fc",fontWeight:700,marginBottom:10,letterSpacing:1}}>NEW SKILL CATEGORY</div>
+          <input value={newCatName} onChange={e=>setNewCatName(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&doAddCat()}
+            placeholder="e.g. Language, Art, Music, Trading..."
+            autoFocus
+            style={{width:"100%",background:"#0a0a18",border:"1px solid #2a2a50",color:"#f0f0ff",borderRadius:8,padding:"10px 12px",fontSize:13,marginBottom:10}}/>
+          <div style={{marginBottom:10}}>
+            <div style={{fontSize:10,color:"#80809a",marginBottom:7,letterSpacing:1}}>COLOUR</div>
+            <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+              {PALETTE.map(c=>(
+                <button key={c} onClick={()=>setNewCatColor(c)} style={{width:26,height:26,borderRadius:"50%",background:c,cursor:"pointer",border:newCatColor===c?"2.5px solid #fff":"2.5px solid transparent",flexShrink:0}}/>
+              ))}
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={doAddCat} style={{flex:1,background:"#c084fc18",border:"1px solid #c084fc55",color:"#c084fc",borderRadius:8,padding:"10px",fontWeight:700,fontSize:13,cursor:"pointer"}}>Create</button>
+            <button onClick={()=>{setShowNewCat(false);setNewCatName("");}} style={{background:"transparent",border:"1px solid #1c1c38",color:"#80809a",borderRadius:8,padding:"10px 14px",cursor:"pointer",fontSize:13}}>Cancel</button>
+          </div>
+        </div>
+      ):(
+        <button onClick={()=>setShowNewCat(true)} style={{width:"100%",background:"transparent",border:"1px dashed #252545",color:"#80809a",borderRadius:11,padding:"11px",fontSize:12,cursor:"pointer",marginBottom:12,letterSpacing:0.4}}>
+          + Create new skill category
+        </button>
+      )}
+
+      {/* Category list */}
+      {Object.entries(allCats).map(([cat,def])=>{
+        const sk=S.skills[cat];
+        if(!sk)return null;
+        const isOpen=open===cat;
+        const subs=Object.keys(sk.subs);
+        const isCustom=def.isCustom||(cat==="Custom");
+        return(
+          <div key={cat} style={{marginBottom:8}}>
+            <button onClick={()=>setOpen(isOpen?null:cat)} style={{
+              width:"100%",background:isOpen?`${def.color}10`:"#0d0d1e",
+              border:`1px solid ${isOpen?def.color+"55":"#1a1a35"}`,
+              borderRadius:isOpen?"11px 11px 0 0":11,
+              padding:"12px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:11,
+              color:"#f0f0ff",transition:"all 0.2s"
+            }}>
+              <span style={{fontSize:15,color:def.color}}>{def.icon}</span>
+              <div style={{flex:1,textAlign:"left"}}>
+                <GT text={def.label||cat} color={def.color} style={{fontWeight:600,fontSize:14,color:"#f0f0ff",display:"block"}}/>
+                <div style={{fontSize:10,color:"#80809a",marginTop:1}}>Lv {sk.level} · {subs.length} discipline{subs.length!==1?"s":""}</div>
+              </div>
+              <span style={{color:def.color,fontSize:11}}>{isOpen?"▴":"▾"}</span>
+            </button>
+
+            {isOpen&&(
+              <div style={{background:"#09091a",border:`1px solid ${def.color}22`,borderTop:"none",borderRadius:"0 0 11px 11px",padding:"12px 13px"}}>
+                {subs.length===0&&(
+                  <div style={{fontSize:12,color:"#50508a",textAlign:"center",padding:"10px 0 14px",fontStyle:"italic"}}>No disciplines yet. Add one below.</div>
+                )}
+                {subs.map(sub=>{
+                  const ss=sk.subs[sub];
+                  const need=XPL*ss.level, amt=ga(cat,sub), sr=getRank(ss.level);
+                  const dk=`${cat}:${sub}`, isC=confirmDel===dk;
+                  return(
+                    <div key={sub} style={{marginBottom:14,paddingBottom:14,borderBottom:"1px solid #121228"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",marginBottom:5,alignItems:"center"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:7}}>
+                          <GT text={sub} color={def.color} style={{fontSize:13,fontWeight:500,color:"#e0e0ff",display:"inline-block"}}/>
+                          <span style={{fontSize:9,color:sr.c,fontWeight:700,background:sr.c+"18",padding:"1px 5px",borderRadius:3}}>{sr.r}</span>
+                        </div>
+                        <div style={{display:"flex",alignItems:"center",gap:7}}>
+                          <span style={{fontSize:10,color:"#9090b8"}}>lv {ss.level} · {ss.xp}/{need}</span>
+                          {isC?(
+                            <div style={{display:"flex",gap:4}}>
+                              <button onClick={()=>{delSub(cat,sub);setConfirmDel(null);}} style={{background:"#fa6f6f18",border:"1px solid #fa6f6f44",color:"#fa6f6f",borderRadius:5,padding:"2px 8px",fontSize:10,cursor:"pointer",fontWeight:600}}>remove</button>
+                              <button onClick={()=>setConfirmDel(null)} style={{background:"none",border:"none",color:"#80809a",cursor:"pointer",fontSize:13}}>✕</button>
+                            </div>
+                          ):(
+                            <button onClick={()=>setConfirmDel(dk)} style={{background:"none",border:"none",color:"#252545",cursor:"pointer",fontSize:14}}>✕</button>
+                          )}
+                        </div>
+                      </div>
+                      <div style={{background:"#07070f",borderRadius:3,height:2,overflow:"hidden",marginBottom:9}}>
+                        <div style={{width:`${(ss.xp/need)*100}%`,height:"100%",background:def.color+"77",transition:"width 0.3s"}}/>
+                      </div>
+                      <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
+                        {[10,25,50,100].map(v=>(
+                          <button key={v} onClick={()=>sa(cat,sub,v)} style={{
+                            background:amt===v?def.color+"22":"transparent",
+                            border:`1px solid ${amt===v?def.color+"66":"#1e1e38"}`,
+                            color:amt===v?def.color:"#9090b8",
+                            borderRadius:6,padding:"4px 8px",fontSize:11,cursor:"pointer",fontWeight:500
+                          }}>{v}</button>
+                        ))}
+                        <input type="number" value={amt} min={1} max={500}
+                          onChange={e=>sa(cat,sub,parseInt(e.target.value)||10)}
+                          style={{width:48,background:"#0e0e1c",border:"1px solid #1e1e38",color:"#a0a0c0",borderRadius:6,padding:"4px 5px",fontSize:11}}/>
+                        <button onClick={()=>addXP(cat,sub,amt)} style={{
+                          flex:1,minWidth:68,background:def.color+"18",border:`1px solid ${def.color}44`,
+                          color:def.color,borderRadius:8,padding:"6px 0",fontWeight:700,fontSize:12,cursor:"pointer"
+                        }}>+ grind</button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Add discipline input */}
+                <div style={{display:"flex",gap:7,marginTop:2}}>
+                  <input value={getSI(cat)} onChange={e=>setSI(cat,e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&doAddSub(cat)}
+                    placeholder={`Add discipline to ${def.label||cat}...`}
+                    style={{flex:1,background:"#0a0a18",border:`1px solid ${def.color}33`,color:"#f0f0ff",borderRadius:8,padding:"9px 11px",fontSize:12}}/>
+                  <button onClick={()=>doAddSub(cat)} style={{
+                    background:`${def.color}18`,border:`1px solid ${def.color}44`,color:def.color,
+                    borderRadius:8,padding:"9px 14px",fontWeight:600,cursor:"pointer",fontSize:12,flexShrink:0
+                  }}>add</button>
+                </div>
+
+                {/* Delete custom category */}
+                {isCustom&&cat!=="Custom"&&(
+                  <div style={{marginTop:12,paddingTop:10,borderTop:"1px solid #111126"}}>
+                    {confirmDelCat===cat?(
+                      <div style={{display:"flex",gap:7,alignItems:"center"}}>
+                        <span style={{fontSize:11,color:"#9090b8",flex:1}}>Delete this entire category?</span>
+                        <button onClick={()=>{delCat(cat);setConfirmDelCat(null);setOpen(null);}} style={{background:"#fa6f6f18",border:"1px solid #fa6f6f44",color:"#fa6f6f",borderRadius:6,padding:"4px 10px",fontSize:10,cursor:"pointer",fontWeight:700}}>Delete</button>
+                        <button onClick={()=>setConfirmDelCat(null)} style={{background:"transparent",border:"none",color:"#80809a",cursor:"pointer",fontSize:13}}>✕</button>
+                      </div>
+                    ):(
+                      <button onClick={()=>setConfirmDelCat(cat)} style={{background:"transparent",border:"1px solid #1a1a35",color:"#50508a",borderRadius:6,padding:"4px 11px",fontSize:10,cursor:"pointer"}}>Remove category</button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── QUESTS ───────────────────────────────────────────────────────────
+function Quests({S, allCats, addQuest, doneQuest, failQuest, delQuest}){
+  const [showForm,setShowForm]=useState(false);
+  const [form,setForm]=useState({title:"",cat:"Study",sub:"",xp:50,d:"D"});
+  const active=S.quests.filter(q=>!q.done&&!q.failed);
+  const done=S.quests.filter(q=>q.done||q.failed);
+
+  function submit(){
+    if(!form.title.trim())return;
+    const sub=form.sub||Object.keys(S.skills[form.cat]?.subs||{})[0]||"";
+    addQuest({...form,sub,difficulty:form.d});
+    setShowForm(false);
+    setForm({title:"",cat:"Study",sub:"",xp:50,d:"D"});
+  }
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <SL style={{margin:0}}>Active Quests</SL>
+        <button onClick={()=>setShowForm(!showForm)} style={{background:"#8b7ffa18",border:"1px solid #8b7ffa55",color:"#8b7ffa",borderRadius:8,padding:"6px 13px",fontWeight:600,fontSize:12,cursor:"pointer"}}>+ new</button>
+      </div>
+      <div style={{fontSize:12,color:"#9090b8",marginBottom:13,fontStyle:"italic",fontWeight:300}}>"{rq(Q.grind)}"</div>
+
+      {!showForm&&(
+        <div style={{marginBottom:14}}>
+          <div style={{fontSize:10,color:"#404068",marginBottom:7,letterSpacing:1}}>QUICK START</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+            {QTPL.map((qt,i)=>(
+              <button key={i} onClick={()=>addQuest({...qt,difficulty:qt.d})} style={{background:"#0d0d1e",border:`1px solid ${DC[qt.d]}22`,color:"#9090b8",borderRadius:7,padding:"5px 10px",fontSize:11,cursor:"pointer"}}>
+                {qt.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showForm&&(
+        <div style={{background:"#0d0d1e",border:"1px solid #8b7ffa22",borderRadius:12,padding:15,marginBottom:14}}>
+          <div style={{fontSize:11,color:"#8b7ffa",fontWeight:700,marginBottom:11,letterSpacing:1}}>NEW QUEST</div>
+          <input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))}
+            placeholder="Name this quest..."
+            style={{width:"100%",background:"#0a0a18",border:"1px solid #252545",color:"#f0f0ff",borderRadius:8,padding:"9px 11px",fontSize:13,marginBottom:9}}/>
+          <div style={{display:"flex",gap:7,marginBottom:9}}>
+            <select value={form.cat} onChange={e=>setForm(p=>({...p,cat:e.target.value,sub:""}))}
+              style={{flex:1,background:"#0a0a18",border:"1px solid #252545",color:"#c0c0e8",borderRadius:8,padding:"9px",fontSize:12}}>
+              {Object.entries(allCats).map(([c,d])=><option key={c} value={c}>{d.label||c}</option>)}
+            </select>
+            <select value={form.sub} onChange={e=>setForm(p=>({...p,sub:e.target.value}))}
+              style={{flex:1,background:"#0a0a18",border:"1px solid #252545",color:"#c0c0e8",borderRadius:8,padding:"9px",fontSize:12}}>
+              <option value="">Any discipline</option>
+              {Object.keys(S.skills[form.cat]?.subs||{}).map(s=><option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{display:"flex",gap:7,marginBottom:11,alignItems:"flex-end"}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:10,color:"#50508a",marginBottom:4,letterSpacing:1}}>XP REWARD</div>
+              <input type="number" value={form.xp} min={5} max={500} onChange={e=>setForm(p=>({...p,xp:parseInt(e.target.value)||25}))}
+                style={{width:"100%",background:"#0a0a18",border:"1px solid #252545",color:"#f0f0ff",borderRadius:8,padding:"9px",fontSize:13}}/>
+            </div>
+            <div>
+              <div style={{fontSize:10,color:"#50508a",marginBottom:4,letterSpacing:1}}>RANK</div>
+              <div style={{display:"flex",gap:3}}>
+                {["E","D","C","B","A","S"].map(d=>(
+                  <button key={d} onClick={()=>setForm(p=>({...p,d}))} style={{
+                    background:form.d===d?DC[d]+"22":"transparent",border:`1px solid ${DC[d]}${form.d===d?"55":"22"}`,
+                    color:form.d===d?DC[d]:DC[d]+"55",borderRadius:5,padding:"6px 7px",fontWeight:700,fontSize:11,cursor:"pointer"
+                  }}>{d}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:7}}>
+            <button onClick={submit} style={{flex:1,background:"#8b7ffa18",border:"1px solid #8b7ffa55",color:"#8b7ffa",borderRadius:8,padding:"9px",fontWeight:700,cursor:"pointer"}}>Create Quest</button>
+            <button onClick={()=>setShowForm(false)} style={{background:"transparent",border:"1px solid #1a1a35",color:"#80809a",borderRadius:8,padding:"9px 13px",cursor:"pointer"}}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {active.length===0&&!showForm&&(
+        <div style={{color:"#30305a",fontSize:13,textAlign:"center",padding:"22px 0",fontStyle:"italic"}}>No active quests. Create one and begin.</div>
+      )}
+
+      {active.map(q=>(
+        <div key={q.id} style={{background:"#0d0d1e",border:`1px solid ${DC[q.difficulty]||"#333"}18`,borderRadius:11,padding:"13px 14px",marginBottom:9}}>
+          <div style={{display:"flex",alignItems:"flex-start",gap:9}}>
+            <div style={{background:`${DC[q.difficulty]}18`,color:DC[q.difficulty],border:`1px solid ${DC[q.difficulty]}44`,borderRadius:5,padding:"2px 7px",fontSize:10,fontWeight:700,flexShrink:0,letterSpacing:1}}>{q.difficulty}</div>
+            <div style={{flex:1}}>
+              <GT text={q.title} color={DC[q.difficulty]} style={{fontWeight:500,fontSize:14,color:"#d8d8f8",display:"block"}}/>
+              <div style={{fontSize:10,color:"#9090b8",marginTop:3}}>{allCats[q.cat]?.label||q.cat} · {q.sub}</div>
+              <div style={{display:"flex",gap:10,marginTop:3}}>
+                <span style={{fontSize:10,color:"#52e89a88"}}>+{q.xp} complete</span>
+                <span style={{fontSize:10,color:"#fa6f6f66"}}>−{q.xp} fail</span>
+              </div>
+            </div>
+            <button onClick={()=>delQuest(q.id)} style={{background:"none",border:"none",color:"#202040",cursor:"pointer",fontSize:14}}>✕</button>
+          </div>
+          <div style={{display:"flex",gap:7,marginTop:11}}>
+            <button onClick={()=>doneQuest(q.id)} style={{flex:1,background:"#52e89a0e",border:"1px solid #52e89a33",color:"#52e89a",borderRadius:8,padding:"8px",fontWeight:600,fontSize:12,cursor:"pointer"}}>✓  Complete</button>
+            <button onClick={()=>failQuest(q.id)} style={{flex:1,background:"#fa6f6f0e",border:"1px solid #fa6f6f33",color:"#fa6f6f",borderRadius:8,padding:"8px",fontWeight:600,fontSize:12,cursor:"pointer"}}>✗  Fail  −{q.xp}</button>
+          </div>
+        </div>
+      ))}
+
+      {done.length>0&&(
+        <div style={{marginTop:18}}>
+          <div style={{fontSize:10,color:"#202040",letterSpacing:1,marginBottom:8}}>HISTORY</div>
+          {done.slice(-15).reverse().map(q=>(
+            <div key={q.id} style={{display:"flex",alignItems:"center",gap:9,padding:"7px 11px",marginBottom:4,background:"#09091a",borderRadius:8,opacity:0.5}}>
+              <span style={{fontSize:12,color:q.done?"#52e89a":"#fa6f6f"}}>{q.done?"✓":"✗"}</span>
+              <span style={{fontSize:12,flex:1,color:"#7070a0"}}>{q.title}</span>
+              <span style={{fontSize:10,color:q.done?"#52e89a55":"#fa6f6f55"}}>{q.done?`+${q.xp}`:`−${q.xp}`}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── DAILIES ──────────────────────────────────────────────────────────
+function Dailies({S, allCats, addDaily, doneDaily, failDaily, delDaily}){
+  const [showForm,setShowForm]=useState(false);
+  const [form,setForm]=useState({title:"",cat:"Study",sub:"",xp:30,d:"D"});
+  const td=today(), tdLog=S.dailyLog[td]||{};
+
+  function submit(){
+    if(!form.title.trim())return;
+    const sub=form.sub||Object.keys(S.skills[form.cat]?.subs||{})[0]||"";
+    addDaily({...form,sub,difficulty:form.d});
+    setShowForm(false);
+    setForm({title:"",cat:"Study",sub:"",xp:30,d:"D"});
+  }
+
+  return(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <SL style={{margin:0}}>Daily Discipline</SL>
+        <button onClick={()=>setShowForm(!showForm)} style={{background:"#5ec9f518",border:"1px solid #5ec9f555",color:"#5ec9f5",borderRadius:8,padding:"6px 13px",fontWeight:600,fontSize:12,cursor:"pointer"}}>+ new</button>
+      </div>
+      <div style={{fontSize:12,color:"#9090b8",marginBottom:10,fontStyle:"italic",fontWeight:300}}>"{rq(Q.daily)}"</div>
+      <div style={{fontSize:11,color:"#404068",marginBottom:13,letterSpacing:0.2}}>Resets every night. Penalty applies if not completed.</div>
+
+      {showForm&&(
+        <div style={{background:"#0d0d1e",border:"1px solid #5ec9f522",borderRadius:12,padding:15,marginBottom:13}}>
+          <div style={{fontSize:11,color:"#5ec9f5",fontWeight:700,marginBottom:11,letterSpacing:1}}>NEW DAILY</div>
+          <input value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))}
+            placeholder="Name this daily..."
+            style={{width:"100%",background:"#0a0a18",border:"1px solid #252545",color:"#f0f0ff",borderRadius:8,padding:"9px 11px",fontSize:13,marginBottom:9}}/>
+          <div style={{display:"flex",gap:7,marginBottom:9}}>
+            <select value={form.cat} onChange={e=>setForm(p=>({...p,cat:e.target.value,sub:""}))}
+              style={{flex:1,background:"#0a0a18",border:"1px solid #252545",color:"#c0c0e8",borderRadius:8,padding:"9px",fontSize:12}}>
+              {Object.entries(allCats).map(([c,d])=><option key={c} value={c}>{d.label||c}</option>)}
+            </select>
+            <select value={form.sub} onChange={e=>setForm(p=>({...p,sub:e.target.value}))}
+              style={{flex:1,background:"#0a0a18",border:"1px solid #252545",color:"#c0c0e8",borderRadius:8,padding:"9px",fontSize:12}}>
+              <option value="">Any discipline</option>
+              {Object.keys(S.skills[form.cat]?.subs||{}).map(s=><option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{display:"flex",gap:7,marginBottom:11,alignItems:"flex-end"}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:10,color:"#50508a",marginBottom:4,letterSpacing:1}}>XP REWARD</div>
+              <input type="number" value={form.xp} min={5} max={500} onChange={e=>setForm(p=>({...p,xp:parseInt(e.target.value)||25}))}
+                style={{width:"100%",background:"#0a0a18",border:"1px solid #252545",color:"#f0f0ff",borderRadius:8,padding:"9px",fontSize:13}}/>
+            </div>
+            <div>
+              <div style={{fontSize:10,color:"#50508a",marginBottom:4,letterSpacing:1}}>RANK</div>
+              <div style={{display:"flex",gap:3}}>
+                {["E","D","C","B","A","S"].map(d=>(
+                  <button key={d} onClick={()=>setForm(p=>({...p,d}))} style={{
+                    background:form.d===d?DC[d]+"22":"transparent",border:`1px solid ${DC[d]}${form.d===d?"55":"22"}`,
+                    color:form.d===d?DC[d]:DC[d]+"55",borderRadius:5,padding:"6px 7px",fontWeight:700,fontSize:11,cursor:"pointer"
+                  }}>{d}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:7}}>
+            <button onClick={submit} style={{flex:1,background:"#5ec9f518",border:"1px solid #5ec9f555",color:"#5ec9f5",borderRadius:8,padding:"9px",fontWeight:700,cursor:"pointer"}}>Create Daily</button>
+            <button onClick={()=>setShowForm(false)} style={{background:"transparent",border:"1px solid #1a1a35",color:"#80809a",borderRadius:8,padding:"9px 13px",cursor:"pointer"}}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {S.dailies.length===0&&!showForm&&(
+        <div style={{color:"#30305a",fontSize:13,textAlign:"center",padding:"22px 0",fontStyle:"italic"}}>No daily disciplines yet. Build your routine.</div>
+      )}
+
+      {S.dailies.map(dq=>{
+        const st=tdLog[dq.id]||"pending";
+        const isDone=st==="done", isFailed=st.includes("failed");
+        const col=isDone?"#52e89a":isFailed?"#fa6f6f":"#50508a";
+        return(
+          <div key={dq.id} style={{background:"#0d0d1e",border:`1px solid ${col}18`,borderRadius:11,padding:"13px 14px",marginBottom:9,opacity:isDone||isFailed?0.72:1}}>
+            <div style={{display:"flex",alignItems:"flex-start",gap:9}}>
+              <div style={{width:21,height:21,borderRadius:"50%",border:`1px solid ${col}44`,display:"flex",alignItems:"center",justifyContent:"center",color:col,fontSize:11,fontWeight:700,flexShrink:0,marginTop:1}}>
+                {isDone?"✓":isFailed?"✗":"·"}
+              </div>
+              <div style={{flex:1}}>
+                <GT text={dq.title} color="#5ec9f5" style={{fontWeight:500,fontSize:14,color:"#d8d8f8",display:"block"}}/>
+                <div style={{fontSize:10,color:"#9090b8",marginTop:3}}>{allCats[dq.cat]?.label||dq.cat} · {dq.sub} · resets daily</div>
+                <div style={{display:"flex",gap:10,marginTop:3}}>
+                  <span style={{fontSize:10,color:"#52e89a88"}}>+{dq.xp} complete</span>
+                  <span style={{fontSize:10,color:"#fa6f6f66"}}>−{dq.xp} fail</span>
+                </div>
+              </div>
+              <button onClick={()=>delDaily(dq.id)} style={{background:"none",border:"none",color:"#202040",cursor:"pointer",fontSize:14}}>✕</button>
+            </div>
+            {st==="pending"&&(
+              <div style={{display:"flex",gap:7,marginTop:11}}>
+                <button onClick={()=>doneDaily(dq)} style={{flex:1,background:"#52e89a0e",border:"1px solid #52e89a33",color:"#52e89a",borderRadius:8,padding:"8px",fontWeight:600,fontSize:12,cursor:"pointer"}}>✓  Done</button>
+                <button onClick={()=>failDaily(dq)} style={{flex:1,background:"#fa6f6f0e",border:"1px solid #fa6f6f33",color:"#fa6f6f",borderRadius:8,padding:"8px",fontWeight:600,fontSize:12,cursor:"pointer"}}>✗  Fail  −{dq.xp}</button>
+              </div>
+            )}
+            {isDone&&<div style={{marginTop:8,fontSize:11,color:"#52e89a55",fontStyle:"italic"}}>Completed today. Well done.</div>}
+            {isFailed&&<div style={{marginTop:8,fontSize:11,color:"#fa6f6f55",fontStyle:"italic"}}>{st==="auto-failed"?"Missed. Penalised at midnight.":"Marked as failed."}</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── REWARDS ──────────────────────────────────────────────────────────
+function Rewards({S, claimReward, saveReward, setLvPopup}){
+  const [editLv,setEditLv]=useState(null);
+  const [editTxt,setEditTxt]=useState("");
+  const rewards=S.rewards||{};
+  const curLv=S.totalLevel;
+  const levels=[];
+  for(let lv=5;lv<=Math.min(curLv+10,50);lv+=5)levels.push(lv);
+
+  return(
+    <div>
+      <SL>Milestone Rewards</SL>
+      <div style={{fontSize:12,color:"#9090b8",marginBottom:14,fontStyle:"italic",fontWeight:300}}>
+        Every 5 levels, you earn a reward. You set the rules. Honour them.
+      </div>
+      {levels.map(lv=>{
+        const rw=rewards[lv]||{items:["Set your reward"],claimed:false};
+        const unlocked=curLv>=lv, claimed=rw.claimed, rk=getRank(lv), isE=editLv===lv;
+        return(
+          <div key={lv} style={{background:"#0d0d1e",border:`1px solid ${unlocked?(claimed?"#1a1a35":rk.c+"33"):"#0f0f1e"}`,borderRadius:11,padding:"13px 14px",marginBottom:9,opacity:unlocked?1:0.35}}>
+            <div style={{display:"flex",alignItems:"center",gap:11,marginBottom:9}}>
+              <div style={{width:36,height:36,borderRadius:9,background:unlocked?`${rk.c}12`:"#0f0f1e",border:`1px solid ${unlocked?rk.c+"33":"#141428"}`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <div style={{fontSize:13,fontWeight:800,color:unlocked?rk.c:"#252545",lineHeight:1}}>{lv}</div>
+                <div style={{fontSize:7,color:unlocked?rk.c+"66":"#1a1a30",letterSpacing:1}}>LVL</div>
+              </div>
+              <div style={{flex:1}}>
+                <GT text={`Level ${lv} Milestone`} color={rk.c} style={{fontSize:13,fontWeight:600,color:unlocked?"#d8d8f8":"#404060",display:"block"}}/>
+                <div style={{fontSize:10,color:rk.c+"66",marginTop:2}}>{rk.label} · {claimed?"Claimed ✓":"Pending"}</div>
+              </div>
+              {unlocked&&!claimed&&(
+                <button onClick={()=>setLvPopup({level:lv,items:rw.items})} style={{background:`${rk.c}18`,border:`1px solid ${rk.c}44`,color:rk.c,borderRadius:7,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}}>view</button>
+              )}
+            </div>
+            {isE?(
+              <div>
+                <textarea value={editTxt} onChange={e=>setEditTxt(e.target.value)} rows={Math.max(2,editTxt.split("\n").length+1)}
+                  placeholder="One reward per line..."
+                  style={{width:"100%",background:"#0a0a18",border:"1px solid #252545",color:"#c8c8f0",borderRadius:8,padding:"9px",fontSize:12,resize:"vertical"}}/>
+                <div style={{display:"flex",gap:6,marginTop:7}}>
+                  <button onClick={()=>{saveReward(lv,editTxt.split("\n").map(x=>x.trim()).filter(Boolean));setEditLv(null);}} style={{flex:1,background:"#8b7ffa18",border:"1px solid #8b7ffa44",color:"#8b7ffa",borderRadius:7,padding:"7px",fontWeight:700,cursor:"pointer"}}>Save</button>
+                  <button onClick={()=>setEditLv(null)} style={{background:"transparent",border:"1px solid #1a1a35",color:"#80809a",borderRadius:7,padding:"7px 11px",cursor:"pointer"}}>Cancel</button>
+                </div>
+              </div>
+            ):(
+              <div>
+                {rw.items.map((item,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:9,padding:"4px 0"}}>
+                    <div style={{width:4,height:4,borderRadius:"50%",background:unlocked?rk.c+"66":"#1a1a30",flexShrink:0}}/>
+                    <span style={{fontSize:12,color:unlocked?"#b0b0d8":"#303050",fontWeight:300}}>{item}</span>
+                  </div>
+                ))}
+                <button onClick={()=>{setEditLv(lv);setEditTxt(rw.items.join("\n"));}} style={{marginTop:9,background:"transparent",border:"1px solid #111128",color:"#404068",borderRadius:6,padding:"4px 10px",fontSize:10,cursor:"pointer"}}>edit rewards</button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── LEVEL UP MODAL ───────────────────────────────────────────────────
+function LvModal({popup, S, onClaim, onDismiss, saveReward}){
+  const rank=getRank(popup.level);
+  const rw=S.rewards&&S.rewards[popup.level];
+  const items=rw?rw.items:popup.items;
+  const claimed=rw&&rw.claimed;
+  const [editing,setEditing]=useState(false);
+  const [editTxt,setEditTxt]=useState(items.join("\n"));
+  const quote=useMemo(()=>rq(Q.levelup),[]);
+
+  function saveEdits(){
+    saveReward(popup.level,editTxt.split("\n").map(x=>x.trim()).filter(Boolean));
+    setEditing(false);
+  }
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"#000000bb",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+      <div style={{background:"#0c0c1e",border:`1px solid ${rank.c}44`,borderRadius:18,padding:24,maxWidth:370,width:"100%",boxShadow:`0 0 60px ${rank.c}18`,animation:"modalIn 0.3s ease"}}>
+        <div style={{textAlign:"center",marginBottom:20}}>
+          <div style={{fontSize:10,color:rank.c+"88",letterSpacing:4,fontWeight:600,marginBottom:10}}>· LEVEL UP ·</div>
+          <div style={{fontSize:50,fontWeight:900,color:rank.c,letterSpacing:2,lineHeight:1,textShadow:`0 0 30px ${rank.c}55`}}>{popup.level}</div>
+          <div style={{fontSize:12,color:"#70709a",marginTop:5,letterSpacing:1}}>{rank.label.toUpperCase()} · RANK {rank.r}</div>
+          <div style={{fontSize:12,color:"#50508a",marginTop:13,fontStyle:"italic",fontWeight:300,lineHeight:1.7,padding:"0 8px"}}>"{quote}"</div>
+        </div>
+        <div style={{height:1,background:`linear-gradient(90deg,transparent,${rank.c}44,transparent)`,marginBottom:16}}/>
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:10,color:"#404068",letterSpacing:2,marginBottom:11,fontWeight:600}}>REWARD UNLOCKED</div>
+          {editing?(
+            <div>
+              <textarea value={editTxt} onChange={e=>setEditTxt(e.target.value)} rows={Math.max(3,editTxt.split("\n").length+1)}
+                style={{width:"100%",background:"#0a0a18",border:"1px solid #252545",color:"#c8c8f0",borderRadius:8,padding:"9px",fontSize:12,resize:"vertical"}}/>
+              <div style={{display:"flex",gap:6,marginTop:7}}>
+                <button onClick={saveEdits} style={{flex:1,background:`${rank.c}18`,border:`1px solid ${rank.c}44`,color:rank.c,borderRadius:7,padding:"7px",fontWeight:700,cursor:"pointer"}}>Save</button>
+                <button onClick={()=>setEditing(false)} style={{background:"transparent",border:"1px solid #1a1a35",color:"#80809a",borderRadius:7,padding:"7px 11px",cursor:"pointer"}}>Cancel</button>
+              </div>
+            </div>
+          ):(
+            <div>
+              {items.map((item,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:11,padding:"8px 0",borderBottom:i<items.length-1?`1px solid ${rank.c}11`:"none"}}>
+                  <div style={{width:5,height:5,borderRadius:"50%",background:rank.c+"88",flexShrink:0}}/>
+                  <span style={{fontSize:13,color:"#b8b8d8",fontWeight:300}}>{item}</span>
+                </div>
+              ))}
+              <button onClick={()=>{setEditTxt(items.join("\n"));setEditing(true);}} style={{marginTop:11,background:"transparent",border:"1px solid #111128",color:"#30305a",borderRadius:7,padding:"5px 11px",fontSize:10,cursor:"pointer",width:"100%"}}>edit rewards</button>
+            </div>
+          )}
+        </div>
+        {/* Letter from past self */}
+        {(()=>{
+          const fromLv=popup.level-5;
+          const letters=S.letters||{};
+          const letter=letters[fromLv];
+          if(!letter)return null;
+          return(
+            <div style={{marginBottom:16}}>
+              <div style={{height:1,background:`linear-gradient(90deg,transparent,${rank.c}33,transparent)`,marginBottom:14}}/>
+              <div style={{fontSize:10,color:"#404068",letterSpacing:2,marginBottom:10,fontWeight:600}}>✉ LETTER FROM LEVEL {fromLv} YOU</div>
+              <div style={{
+                background:"#07070f",border:`1px solid ${rank.c}18`,borderRadius:10,padding:"13px",
+                fontSize:12,color:"#b8b8d8",lineHeight:1.8,fontWeight:300,
+                whiteSpace:"pre-wrap",fontStyle:"italic",maxHeight:160,overflowY:"auto"
+              }}>"{letter.text}"</div>
+              <div style={{fontSize:10,color:"#303050",marginTop:6,fontStyle:"italic"}}>Written on {letter.writtenAt} — look how far you've come.</div>
+            </div>
+          );
+        })()}
+
+        <div style={{display:"flex",gap:7}}>
+          {!claimed?(
+            <button onClick={()=>{onClaim(popup.level);if(S.letters){const l=S.letters[popup.level-5];if(l)markLetterRead(popup.level-5);}}} style={{flex:1,background:`${rank.c}18`,border:`1px solid ${rank.c}55`,color:rank.c,borderRadius:10,padding:"12px",fontWeight:700,fontSize:14,cursor:"pointer"}}>Claim Reward</button>
+          ):(
+            <div style={{flex:1,textAlign:"center",color:"#52e89a55",fontSize:12,padding:"12px",fontStyle:"italic"}}>Already claimed ✓</div>
+          )}
+          <button onClick={onDismiss} style={{background:"transparent",border:"1px solid #141428",color:"#303050",borderRadius:10,padding:"12px 14px",cursor:"pointer",fontSize:12}}>Later</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── LETTERS ─────────────────────────────────────────────────────────
+function Letters({S, writeLetter, markLetterRead}){
+  const [writing, setWriting] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [reading, setReading] = useState(null); // letter fromLevel being read
+  const letters = S.letters||{};
+  const curLv = S.totalLevel;
+
+  // Current writing level = current milestone floor (nearest 5 below curLv, or 0)
+  const fromLv = Math.floor(curLv/5)*5;
+  // Writing for next milestone
+  const toLv = fromLv + 5;
+  const alreadyWrote = !!letters[fromLv];
+
+  // All readable letters: letters where S.totalLevel >= letter.to
+  const readable = Object.values(letters)
+    .filter(l => curLv >= l.to)
+    .sort((a,b) => b.to - a.to);
+
+  // All sealed (not yet readable)
+  const sealed = Object.values(letters)
+    .filter(l => curLv < l.to)
+    .sort((a,b) => a.to - b.to);
+
+  const rank = getRank(curLv);
+  const readingLetter = reading!==null ? letters[reading] : null;
+
+  return(
+    <div>
+      <SL>Letters to Future Self</SL>
+      <div style={{fontSize:12,color:"#9090b8",marginBottom:14,fontStyle:"italic",fontWeight:300,lineHeight:1.6}}>
+        "Write to who you will become. Read what you once were. Watch yourself grow."
+      </div>
+
+      {/* READ LETTER OVERLAY */}
+      {readingLetter&&(
+        <div style={{position:"fixed",inset:0,background:"#000000cc",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{background:"#0c0c1e",border:`1px solid ${getRank(readingLetter.to).c}44`,borderRadius:16,padding:22,maxWidth:400,width:"100%",boxShadow:`0 0 40px ${getRank(readingLetter.to).c}18`,maxHeight:"88vh",overflowY:"auto",animation:"modalIn 0.25s ease"}}>
+            <div style={{fontSize:10,color:getRank(readingLetter.to).c+"88",letterSpacing:3,fontWeight:700,marginBottom:6}}>· LETTER FROM THE PAST ·</div>
+            <div style={{fontSize:12,color:"#50508a",marginBottom:4}}>Written by Level {readingLetter.from} you</div>
+            <div style={{fontSize:11,color:"#303050",marginBottom:18,fontStyle:"italic"}}>on {readingLetter.writtenAt} · for Level {readingLetter.to} you</div>
+
+            {/* Letter paper effect */}
+            <div style={{
+              background:"#07070f",
+              border:`1px solid ${getRank(readingLetter.to).c}18`,
+              borderRadius:12,padding:"18px 16px",
+              fontSize:13,color:"#c8c8e8",lineHeight:1.9,
+              fontWeight:300,whiteSpace:"pre-wrap",fontStyle:"italic",
+              letterSpacing:0.2,marginBottom:14,
+              boxShadow:`inset 0 0 30px ${getRank(readingLetter.to).c}08`
+            }}>"{readingLetter.text}"</div>
+
+            <div style={{fontSize:11,color:"#404060",marginBottom:18,lineHeight:1.6,textAlign:"center",fontStyle:"italic"}}>
+              That was Level {readingLetter.from} you speaking.<br/>You are now Level {curLv}. Look how far you've come.
+            </div>
+            <button onClick={()=>{markLetterRead(readingLetter.from);setReading(null);}} style={{
+              width:"100%",background:`${getRank(readingLetter.to).c}18`,
+              border:`1px solid ${getRank(readingLetter.to).c}55`,
+              color:getRank(readingLetter.to).c,
+              borderRadius:10,padding:"12px",fontWeight:700,fontSize:13,cursor:"pointer"
+            }}>I've read this ✓</button>
+          </div>
+        </div>
+      )}
+
+      {/* WRITE LETTER SECTION */}
+      <div style={{background:"#0d0d1e",border:`1px solid ${alreadyWrote?"#1a1a35":"#8b7ffa33"}`,borderRadius:12,padding:"15px",marginBottom:18}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:alreadyWrote?0:12}}>
+          <div style={{width:36,height:36,borderRadius:9,background:"#8b7ffa12",border:"1px solid #8b7ffa33",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>✉</div>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:600,color:"#d8d8f8"}}>Write to Level {toLv} you</div>
+            <div style={{fontSize:10,color:"#50508a",marginTop:2}}>
+              {alreadyWrote ? `Sealed · written ${letters[fromLv].writtenAt}` : `You are Level ${curLv} · ${toLv-curLv} levels away from them reading this`}
+            </div>
+          </div>
+        </div>
+
+        {alreadyWrote?(
+          <div>
+            <div style={{
+              background:"#07070f",border:"1px solid #1a1a30",borderRadius:10,
+              padding:"13px",fontSize:12,color:"#6060a0",lineHeight:1.8,
+              fontWeight:300,fontStyle:"italic",whiteSpace:"pre-wrap",marginTop:12,
+              maxHeight:120,overflowY:"auto"
+            }}>"{letters[fromLv].text}"</div>
+            <div style={{fontSize:10,color:"#303050",marginTop:8,textAlign:"center",fontStyle:"italic"}}>
+              This letter is sealed. Level {toLv} you will read it when they arrive.
+            </div>
+          </div>
+        ):writing?(
+          <div>
+            <textarea
+              value={draft}
+              onChange={e=>setDraft(e.target.value)}
+              placeholder={`Dear Level ${toLv} me,
+
+Right now I am Level ${curLv}. Here's what I want you to know...`}
+              rows={7}
+              autoFocus
+              style={{
+                width:"100%",background:"#07070f",border:"1px solid #252545",
+                color:"#d8d8f8",borderRadius:10,padding:"13px",fontSize:13,
+                resize:"vertical",lineHeight:1.8,letterSpacing:0.2,marginBottom:10
+              }}
+            />
+            <div style={{fontSize:10,color:"#303050",marginBottom:12,fontStyle:"italic",lineHeight:1.5}}>
+              Be honest. Talk about what you're struggling with. What you're proud of. What you hope for. Level {toLv} you will read this and remember who they used to be.
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>{if(draft.trim()){writeLetter(fromLv,draft.trim());setDraft("");setWriting(false);}}}
+                style={{flex:1,background:"#8b7ffa18",border:"1px solid #8b7ffa55",color:"#8b7ffa",borderRadius:9,padding:"11px",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                Seal Letter ✉
+              </button>
+              <button onClick={()=>{setWriting(false);setDraft("");}}
+                style={{background:"transparent",border:"1px solid #1a1a35",color:"#606080",borderRadius:9,padding:"11px 14px",cursor:"pointer",fontSize:13}}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        ):(
+          <button onClick={()=>setWriting(true)} style={{
+            width:"100%",background:"#8b7ffa08",border:"1px dashed #8b7ffa44",
+            color:"#8b7ffa",borderRadius:9,padding:"11px",fontSize:13,cursor:"pointer",
+            fontWeight:500,letterSpacing:0.3
+          }}>Begin writing →</button>
+        )}
+      </div>
+
+      {/* UNREAD LETTERS */}
+      {readable.filter(l=>!l.read).length>0&&(
+        <>
+          <SL>Unread Letters</SL>
+          {readable.filter(l=>!l.read).map(letter=>{
+            const rk=getRank(letter.to);
+            return(
+              <button key={letter.from} onClick={()=>setReading(letter.from)} style={{
+                width:"100%",background:`${rk.c}10`,border:`1px solid ${rk.c}44`,
+                borderRadius:11,padding:"13px 15px",marginBottom:8,cursor:"pointer",
+                display:"flex",alignItems:"center",gap:12,textAlign:"left",
+                boxShadow:`0 0 12px ${rk.c}18`
+              }}>
+                <div style={{width:36,height:36,borderRadius:9,background:`${rk.c}18`,border:`1px solid ${rk.c}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>✉</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600,color:rk.c}}>Letter from Level {letter.from} you</div>
+                  <div style={{fontSize:10,color:"#50508a",marginTop:3}}>For Level {letter.to} you · written {letter.writtenAt}</div>
+                  <div style={{fontSize:11,color:"#60608a",marginTop:4,fontStyle:"italic",fontWeight:300,overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis"}}>"{letter.text.slice(0,60)}{letter.text.length>60?"...":""}"</div>
+                </div>
+                <div style={{width:8,height:8,borderRadius:"50%",background:rk.c,flexShrink:0}}/>
+              </button>
+            );
+          })}
+          <div style={{height:8}}/>
+        </>
+      )}
+
+      {/* READ LETTERS */}
+      {readable.filter(l=>l.read).length>0&&(
+        <>
+          <SL>Read Letters</SL>
+          {readable.filter(l=>l.read).map(letter=>{
+            const rk=getRank(letter.to);
+            return(
+              <button key={letter.from} onClick={()=>setReading(letter.from)} style={{
+                width:"100%",background:"#0d0d1e",border:"1px solid #1a1a30",
+                borderRadius:11,padding:"13px 15px",marginBottom:7,cursor:"pointer",
+                display:"flex",alignItems:"center",gap:12,textAlign:"left",opacity:0.65
+              }}>
+                <div style={{width:36,height:36,borderRadius:9,background:"#111124",border:"1px solid #1e1e35",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>✉</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:500,color:"#7070a0"}}>Letter from Level {letter.from} you</div>
+                  <div style={{fontSize:10,color:"#404060",marginTop:3}}>For Level {letter.to} you · {letter.writtenAt}</div>
+                </div>
+                <div style={{fontSize:10,color:"#303050"}}>read ✓</div>
+              </button>
+            );
+          })}
+          <div style={{height:8}}/>
+        </>
+      )}
+
+      {/* SEALED / UPCOMING */}
+      {sealed.length>0&&(
+        <>
+          <SL>Sealed — Not Yet</SL>
+          {sealed.map(letter=>(
+            <div key={letter.from} style={{
+              background:"#09091a",border:"1px solid #111124",
+              borderRadius:11,padding:"13px 15px",marginBottom:7,
+              display:"flex",alignItems:"center",gap:12,opacity:0.4
+            }}>
+              <div style={{width:36,height:36,borderRadius:9,background:"#0d0d1a",border:"1px solid #141428",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>🔒</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:500,color:"#404060"}}>Letter for Level {letter.to} you</div>
+                <div style={{fontSize:10,color:"#282840",marginTop:3}}>Sealed · unlocks at Level {letter.to}</div>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {Object.keys(letters).length===0&&!writing&&(
+        <div style={{textAlign:"center",padding:"30px 20px",color:"#303050",fontSize:13,fontStyle:"italic",lineHeight:1.8}}>
+          No letters yet.<br/>Write your first one above.<br/>Future you is waiting.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── LOG ──────────────────────────────────────────────────────────────
+function Log({S}){
+  return(
+    <div>
+      <SL>Activity Log</SL>
+      {S.log.length===0&&<div style={{color:"#252545",fontSize:13,textAlign:"center",padding:"22px 0",fontStyle:"italic"}}>No activity yet. Begin your journey.</div>}
+      {S.log.map((e,i)=>(
+        <div key={i} style={{display:"flex",gap:11,alignItems:"flex-start",padding:"8px 0",borderBottom:"1px solid #0c0c18"}}>
+          <div style={{width:5,height:5,borderRadius:"50%",background:"#8b7ffa55",marginTop:5,flexShrink:0}}/>
+          <div style={{flex:1,fontSize:12,color:"#7070a0",fontWeight:300}}>{e.text}</div>
+          <div style={{fontSize:9,color:"#252545",flexShrink:0}}>{new Date(e.t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
